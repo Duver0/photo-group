@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "username": "Duver0",
+  "default_agent": "project-architect",
+  "instructions": ["AGENTS.md"],
+  "agent": {
+    "project-architect": {
+      "description": "Primary agent that orchestrates the photo-group project: Google Drive photo sharing via QR codes. Delegates to subagents for auth, drive, frontend, deploy, and QA.",
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-6"
+    },
+    "auth-engineer": {
+      "description": "Implements Google OAuth authentication with NextAuth.js v5, session management, and protected routes.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": { "edit": "allow", "bash": "allow" }
+    },
+    "drive-engineer": {
+      "description": "Integrates Google Drive API v3: folder creation by date, photo uploads, file listing, and OAuth scopes.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": { "edit": "allow", "bash": "allow" }
+    },
+    "frontend-engineer": {
+      "description": "Builds UI components: QR scanner display, camera capture, multi-file upload (max 10, images only), folder view.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": { "edit": "allow", "bash": "allow" }
+    },
+    "deploy-engineer": {
+      "description": "Configures Vercel deployment, environment variables, Google Cloud OAuth credentials, and CI/CD.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": { "edit": "allow", "bash": "allow" }
+    },
+    "qa-engineer": {
+      "description": "Writes and runs tests, validates photo upload flow, QR generation, auth flow, and cross-browser compatibility.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": { "edit": "allow", "bash": "allow" }
+    }
+  },
+  "command": {
+    "dev": {
+      "description": "Start the Next.js development server",
+      "template": "Run the Next.js dev server and fix any startup errors."
+    },
+    "build": {
+      "description": "Build the project for production",
+      "template": "Run 'npm run build' and report any errors."
+    },
+    "deploy": {
+      "description": "Deploy to Vercel",
+      "template": "Deploy the current branch to Vercel production."
+    }
+  }
+}
