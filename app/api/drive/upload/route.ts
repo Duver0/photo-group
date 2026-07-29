@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth"
-import { getDriveClient, getServiceAccountClient, getOrCreateDateFolder, uploadPhoto } from "@/lib/drive"
+import { getDriveClient, getOwnerDriveClient, getOrCreateDateFolder, uploadPhoto } from "@/lib/drive"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"]
 const MAX_FILES = 10
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const session = await auth()
     const drive = session?.accessToken
       ? getDriveClient(session.accessToken)
-      : getServiceAccountClient()
+      : getOwnerDriveClient()
 
     const dateStr = getDateStr()
     const { folderId: dateFolderId } = await getOrCreateDateFolder(drive, folderId, dateStr)

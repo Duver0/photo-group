@@ -30,6 +30,8 @@ export default function Dashboard() {
   const [loadingFolders, setLoadingFolders] = useState(true)
 
   useEffect(() => {
+    if (status !== "authenticated") return
+
     async function init() {
       try {
         const folderRes = await fetch("/api/drive/folders", { method: "POST" })
@@ -37,31 +39,21 @@ export default function Dashboard() {
         const data: FoldersResponse = await folderRes.json()
         setRootFolderId(data.rootFolderId)
         setTodayFolder(data)
+
+        const listRes = await fetch("/api/drive/folders")
+        if (listRes.ok) {
+          const listData = await listRes.json()
+          setFolders(listData.folders)
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
         setLoadingToday(false)
-      }
-    }
-
-    if (status === "authenticated") init()
-  }, [status])
-
-  useEffect(() => {
-    async function loadFolders() {
-      try {
-        const res = await fetch("/api/drive/folders")
-        if (!res.ok) throw new Error("Error al cargar carpetas")
-        const data = await res.json()
-        setFolders(data.folders)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
         setLoadingFolders(false)
       }
     }
 
-    if (status === "authenticated") loadFolders()
+    init()
   }, [status])
 
   if (status === "loading") {

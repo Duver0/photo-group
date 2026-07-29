@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth"
-import { getDriveClient, getOrCreateRootFolder, getOrCreateDateFolder, listDateFolders } from "@/lib/drive"
+import { getDriveClient, getOrCreateRootFolder, findRootFolder, getOrCreateDateFolder, listDateFolders } from "@/lib/drive"
 
 function getDateStr() {
   const d = new Date()
@@ -17,7 +17,8 @@ export async function GET() {
 
   try {
     const drive = getDriveClient(session.accessToken)
-    const rootId = await getOrCreateRootFolder(drive)
+    const rootId = await findRootFolder(drive)
+    if (!rootId) return Response.json({ folders: [] })
     const folders = await listDateFolders(drive, rootId)
     return Response.json({ folders })
   } catch (error: any) {

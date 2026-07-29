@@ -1,4 +1,5 @@
 import { google } from "googleapis"
+import { Readable } from "stream"
 
 export function getDriveClient(accessToken: string) {
   const auth = new google.auth.OAuth2()
@@ -6,16 +7,24 @@ export function getDriveClient(accessToken: string) {
   return google.drive({ version: "v3", auth })
 }
 
-export function getServiceAccountClient() {
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  if (!key) throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY no configurada")
-  const credentials = JSON.parse(key)
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
-  })
+export function getOwnerDriveClient() {
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+  if (!refreshToken) throw new Error("GOOGLE_REFRESH_TOKEN no configurado")
+  const auth = new google.auth.OAuth2(
+    process.env.AUTH_GOOGLE_ID,
+    process.env.AUTH_GOOGLE_SECRET,
+  )
+  auth.setCredentials({ refresh_token: refreshToken })
   return google.drive({ version: "v3", auth })
+}
+
+export async function findRootFolder(drive: ReturnType<typeof getDriveClient>) {
+  const res = await drive.files.list({
+    q: "name='Photo-Group' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+    spaces: "drive",
+    fields: "files(id, name)",
+  })
+  return res.data.files && res.data.files.length > 0 ? res.data.files[0].id! : null
 }
 
 export async function getOrCreateRootFolder(drive: ReturnType<typeof getDriveClient>) {
@@ -95,7 +104,7 @@ export async function uploadPhoto(
     },
     media: {
       mimeType: file.mimeType,
-      body: Buffer.from(file.buffer),
+      body: Readable.from(Buffer.from(file.buffer)),
     },
     fields: "id, name, mimeType, webViewLink, thumbnailLink, size, createdTime",
   })
