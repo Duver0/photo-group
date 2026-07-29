@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
 import { useEffect, useState } from "react"
 import { QrDisplay } from "@/components/qr-display"
-import { FolderGallery } from "@/components/folder-gallery"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type FoldersResponse = {
@@ -12,6 +11,14 @@ type FoldersResponse = {
   folderId: string
   name: string
   created: boolean
+}
+
+type Photo = {
+  id: string
+  name: string
+  thumbnailLink?: string
+  webViewLink?: string
+  createdTime: string
 }
 
 type Folder = {
@@ -24,10 +31,11 @@ export default function Dashboard() {
   const { data: session, status } = useSession()
   const [rootFolderId, setRootFolderId] = useState<string | null>(null)
   const [todayFolder, setTodayFolder] = useState<FoldersResponse | null>(null)
+  const [todayPhotos, setTodayPhotos] = useState<Photo[]>([])
+  const [todayCount, setTodayCount] = useState(0)
   const [folders, setFolders] = useState<Folder[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [loadingToday, setLoadingToday] = useState(true)
-  const [loadingFolders, setLoadingFolders] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -40,16 +48,25 @@ export default function Dashboard() {
         setRootFolderId(data.rootFolderId)
         setTodayFolder(data)
 
-        const listRes = await fetch("/api/drive/folders")
+        const [photosRes, listRes] = await Promise.all([
+          fetch(`/api/drive/photos?folderId=${data.folderId}`),
+          fetch("/api/drive/folders"),
+        ])
+
+        if (photosRes.ok) {
+          const photosData = await photosRes.json()
+          setTodayPhotos((photosData.photos || []).slice(0, 6))
+          setTodayCount(photosData.photos?.length || 0)
+        }
+
         if (listRes.ok) {
           const listData = await listRes.json()
-          setFolders(listData.folders)
+          setFolders(listData.folders || [])
         }
       } catch (err: any) {
         setError(err.message)
       } finally {
-        setLoadingToday(false)
-        setLoadingFolders(false)
+        setLoading(false)
       }
     }
 
@@ -69,6 +86,17 @@ export default function Dashboard() {
   }
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+  const driveFolderUrl = rootFolderId
+    ? `https://drive.google.com/drive/folders/${rootFolderId}`
+    : "#"
+
+  function getDateStr() {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
 
   return (
     <div className="space-y-8">
@@ -91,49 +119,88 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
-          {loadingToday ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="h-6 w-48 bg-zinc-100 animate-pulse rounded mb-4" />
-                <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-zinc-100 animate-pulse rounded-lg" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : todayFolder ? (
-            <div>
-              <CardHeader>
-                <CardTitle>
-                  {todayFolder.name}
-                  <span className="ml-2 text-sm font-normal text-blue-600">(Hoy)</span>
-                </CardTitle>
-              </CardHeader>
-              <FolderGallery
-                folders={[{ id: todayFolder.folderId, name: todayFolder.name, createdTime: "" }]}
-              />
-            </div>
-          ) : null}
-
-          <div>
+          <Card>
             <CardHeader>
-              <CardTitle>Todas las carpetas</CardTitle>
+              <CardTitle>
+                {getDateStr()}
+                <span className="ml-2 text-sm font-normal text-blue-600">(Hoy)</span>
+              </CardTitle>
             </CardHeader>
-            {loadingFolders ? (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-16 bg-zinc-100 animate-pulse rounded-lg" />
+            <CardContent>
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="h-4 w-32 bg-zinc-100 animate-pulse rounded" />
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="aspect-square bg-zinc-100 animate-pulse rounded-lg" />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <FolderGallery folders={folders} />
-            )}
-          </div>
+                </div>
+              ) : todayCount === 0 ? (
+                <p className="text-sm text-zinc-400 py-4 text-center">
+                  Sin fotos hoy. Comparte tu codigo QR.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-zinc-500">{todayCount} foto(s) hoy</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {todayPhotos.map((photo) => (
+                      <a
+                        key={photo.id}
+                        href={photo.webViewLink ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="aspect-square"
+                      >
+                        <img
+                          src={photo.thumbnailLink ?? ""}
+                          alt={photo.name}
+                          className="w-full h-full object-cover rounded-lg hover:opacity-80 transition-opacity"
+                          loading="lazy"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Carpetas anteriores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-10 bg-zinc-100 animate-pulse rounded" />
+                  ))}
+                </div>
+              ) : folders.length === 0 ? (
+                <p className="text-sm text-zinc-400 py-2">
+                  No hay carpetas aun.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {folders.map((f) => (
+                    <li key={f.id} className="text-sm text-zinc-600">
+                      {f.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <a
+            href={driveFolderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-sm text-blue-600 hover:text-blue-700 underline"
+          >
+            Ver todas las fotos en Google Drive &rarr;
+          </a>
         </div>
       </div>
     </div>
