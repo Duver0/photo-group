@@ -80,3 +80,23 @@ Para abrir a todo publico, vuelve a la pantalla de consentimiento y click **"PUB
 - No se requiere que los invitados tengan cuenta de Google
 - Las carpetas se organizan como `Photo-Group/YYYY-MM-DD/`
 - Sesion via JWT (sin base de datos)
+
+## Prueba de carga
+
+Resultados con 50KB por foto contra el endpoint `/api/drive/upload` en produccion (Vercel Hobby):
+
+| Concurrentes | Requests | Tasa (req/s) | Errores | p50 | p95 |
+|-------------|----------|-------------|---------|-----|-----|
+| 5 | 25 | 2.5 | 0 | 1.5s | 3.1s |
+| 30 | 120 | 15.3 | 0 | 1.4s | 2.5s |
+| 100 | 500 | 39.6 | 0 | 1.6s | 2.0s |
+| 200 | 1000 | 55.8 | 0 | 2.3s | 3.4s |
+| 500 | 2000 | 95.5 | 0 | 3.2s | 4.7s |
+| **1000** | **5000** | **73.7** | **212** | **4.9s** | **10.8s** |
+
+**Conclusion**: Hasta 200 usuarios simultaneos la app responde sin errores y con latencia aceptable. El cuello de botella es la cuota de Google Drive API (10,000 queries/100s por proyecto). Para escalar: Vercel Pro + aumento de cuota en Google Cloud Console.
+
+Ejecutar prueba local:
+```bash
+FOLDER_ID=<id-del-dashboard> bun run scripts/load-test.mjs
+```
