@@ -1,7 +1,8 @@
 "use client"
 
-import { useRef, useState, useCallback } from "react"
+import { useRef, useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { savePhotos, loadPhotos, clearPhotos, type StoredPhoto } from "@/lib/db"
 
 const MAX_FILES = 10
 const MAX_SIZE = 10 * 1024 * 1024
@@ -21,8 +22,45 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [restoring, setRestoring] = useState(true)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await loadPhotos()
+        if (stored.length > 0) {
+          const restored = stored.map((s) => ({
+            id: s.id,
+            file: new File([s.data], s.name, { type: s.type }),
+            preview: URL.createObjectURL(new Blob([s.data], { type: s.type })),
+          }))
+          setPhotos(restored)
+        }
+      } catch { /* ignore */ }
+      setRestoring(false)
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (restoring) return
+    persist()
+  }, [photos, restoring])
+
+  async function persist() {
+    try {
+      const stored: StoredPhoto[] = await Promise.all(
+        photos.map(async (p) => ({
+          id: p.id,
+          name: p.file.name,
+          type: p.file.type,
+          data: await p.file.arrayBuffer(),
+        }))
+      )
+      await savePhotos(stored)
+    } catch { /* ignore */ }
+  }
 
   function addFiles(files: FileList) {
     setError(null)
@@ -53,9 +91,6 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     }))
 
     setPhotos((prev) => [...prev, ...newPhotos])
-
-    if (cameraInputRef.current) cameraInputRef.current.value = ""
-    if (galleryInputRef.current) galleryInputRef.current.value = ""
   }
 
   function removePhoto(id: string) {
@@ -68,14 +103,22 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
 
   const handleGalleryChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) addFiles(e.target.files)
+      if (e.target.files && e.target.files.length > 0) {
+        addFiles(e.target.files)
+        if (cameraInputRef.current) cameraInputRef.current.value = ""
+        if (galleryInputRef.current) galleryInputRef.current.value = ""
+      }
     },
     [photos.length]
   )
 
   const handleCameraCapture = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) addFiles(e.target.files)
+      if (e.target.files && e.target.files.length > 0) {
+        addFiles(e.target.files)
+        if (cameraInputRef.current) cameraInputRef.current.value = ""
+        if (galleryInputRef.current) galleryInputRef.current.value = ""
+      }
     },
     [photos.length]
   )
@@ -87,6 +130,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     try {
       await onUpload(photos.map((p) => p.file))
       setPhotos([])
+      await clearPhotos()
     } catch (err: any) {
       setError(err.message ?? "Error al subir fotos")
     } finally {
@@ -96,26 +140,35 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
 
   const remaining = MAX_FILES - photos.length
 
+  if (restoring) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleCameraCapture}
+        className="hidden"
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleGalleryChange}
+        className="hidden"
+      />
+
       {photos.length === 0 ? (
         <div className="space-y-3">
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleCameraCapture}
-            className="hidden"
-          />
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleGalleryChange}
-            className="hidden"
-          />
           <Button
             variant="primary"
             size="lg"
@@ -148,6 +201,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
               onClick={() => {
                 photos.forEach((p) => URL.revokeObjectURL(p.preview))
                 setPhotos([])
+                clearPhotos()
               }}
               className="text-xs text-cream/40 hover:text-cream/70 transition-colors"
             >
@@ -173,51 +227,44 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
             ))}
           </div>
 
-          <div className="flex gap-3">
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleCameraCapture}
-              className="hidden"
-            />
-            <input
-              ref={galleryInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleGalleryChange}
-              className="hidden"
-            />
+          <div className="flex flex-col gap-3">
             <Button
               variant="secondary"
-              size="sm"
+              size="lg"
               onClick={() => cameraInputRef.current?.click()}
               disabled={remaining === 0}
+              className="w-full"
             >
-              + Foto
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              </svg>
+              Tomar otra foto
             </Button>
+
             <Button
               variant="ghost"
-              size="sm"
+              size="lg"
               onClick={() => galleryInputRef.current?.click()}
               disabled={remaining === 0}
+              className="w-full border border-gold/20"
             >
-              + Galeria
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Agregar de galeria
+            </Button>
+
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleUpload}
+              loading={uploading}
+              disabled={photos.length === 0}
+              className="w-full mt-2"
+            >
+              {uploading ? "Subiendo..." : `Subir ${photos.length} foto(s)`}
             </Button>
           </div>
-
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleUpload}
-            loading={uploading}
-            disabled={photos.length === 0}
-            className="w-full"
-          >
-            {uploading ? "Subiendo..." : `Subir ${photos.length} foto(s)`}
-          </Button>
         </div>
       )}
 
