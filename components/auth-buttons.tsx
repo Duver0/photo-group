@@ -22,12 +22,12 @@ export function SignOutButton() {
         <img
           src={session.user.image}
           alt={session.user.name ?? ""}
-          className="h-8 w-8 rounded-full"
+          className="h-7 w-7 rounded-full ring-1 ring-gold/30"
         />
       )}
-      <span className="text-sm text-zinc-600">{session.user.name}</span>
+      <span className="text-sm text-cream/60 hidden sm:inline">{session.user.name}</span>
       <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>
-        Sign out
+        Salir
       </Button>
     </div>
   )

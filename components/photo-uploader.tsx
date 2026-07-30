@@ -2,7 +2,6 @@
 
 import { useRef, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 
 const MAX_FILES = 10
 const MAX_SIZE = 10 * 1024 * 1024
@@ -31,17 +30,17 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     const remaining = MAX_FILES - photos.length
 
     if (arr.length > remaining) {
-      setError(`Solo puedes seleccionar ${remaining} foto(s) mas (maximo ${MAX_FILES})`)
+      setError(`Solo ${remaining} foto(s) mas (max ${MAX_FILES})`)
       return
     }
 
     const valid = arr.filter((f) => {
       if (!ALLOWED_TYPES.includes(f.type)) {
-        setError(`Tipo no soportado: ${f.name}`)
+        setError(`Formato no valido: ${f.name}`)
         return false
       }
       if (f.size > MAX_SIZE) {
-        setError(`Archivo demasiado grande: ${f.name}`)
+        setError(`Archivo muy grande: ${f.name}`)
         return false
       }
       return true
@@ -98,11 +97,9 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
   const remaining = MAX_FILES - photos.length
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Subir fotos</h2>
-
-        <div className="flex gap-3">
+    <div className="space-y-5">
+      {photos.length === 0 ? (
+        <div className="space-y-3">
           <input
             ref={cameraInputRef}
             type="file"
@@ -120,56 +117,113 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
             className="hidden"
           />
           <Button
-            variant="outline"
+            variant="primary"
+            size="lg"
             onClick={() => cameraInputRef.current?.click()}
-            disabled={remaining === 0}
+            className="w-full"
           >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
             Tomar foto
           </Button>
           <Button
             variant="secondary"
+            size="lg"
             onClick={() => galleryInputRef.current?.click()}
-            disabled={remaining === 0}
+            className="w-full"
           >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
             Subir desde galeria
           </Button>
         </div>
-
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-
-        {photos.length > 0 && (
-          <div>
-            <p className="text-sm text-zinc-500 mb-3">
-              {photos.length}/{MAX_FILES} fotos seleccionadas
-            </p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative group aspect-square">
-                  <img
-                    src={photo.preview}
-                    alt={photo.file.name}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => removePhoto(photo.id)}
-                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <Button onClick={handleUpload} loading={uploading} disabled={photos.length === 0}>
-                {uploading ? "Subiendo..." : `Subir ${photos.length} foto(s)`}
-              </Button>
-            </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-cream/60">{photos.length}/{MAX_FILES} fotos</p>
+            <button
+              onClick={() => {
+                photos.forEach((p) => URL.revokeObjectURL(p.preview))
+                setPhotos([])
+              }}
+              className="text-xs text-cream/40 hover:text-cream/70 transition-colors"
+            >
+              Limpiar todo
+            </button>
           </div>
-        )}
-      </Card>
+
+          <div className="grid grid-cols-3 gap-2">
+            {photos.map((photo) => (
+              <div key={photo.id} className="relative group aspect-square">
+                <img
+                  src={photo.preview}
+                  alt={photo.file.name}
+                  className="w-full h-full object-cover rounded-xl"
+                />
+                <button
+                  onClick={() => removePhoto(photo.id)}
+                  className="absolute top-1.5 right-1.5 bg-ink/70 text-cream rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleCameraCapture}
+              className="hidden"
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleGalleryChange}
+              className="hidden"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={remaining === 0}
+            >
+              + Foto
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={remaining === 0}
+            >
+              + Galeria
+            </Button>
+          </div>
+
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleUpload}
+            loading={uploading}
+            disabled={photos.length === 0}
+            className="w-full"
+          >
+            {uploading ? "Subiendo..." : `Subir ${photos.length} foto(s)`}
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-400 text-center">{error}</p>
+      )}
     </div>
   )
 }

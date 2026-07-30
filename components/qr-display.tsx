@@ -36,22 +36,25 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
   }
 
   return (
-    <Card className="flex flex-col items-center gap-4 p-8">
-      <QRCodeSVG
-        id="qr-code"
-        value={uploadUrl}
-        size={256}
-        level="M"
-        includeMargin
-      />
-      <p className="text-sm text-zinc-500 text-center max-w-xs">
-        Escanea este codigo QR para subir fotos
+    <Card className="flex flex-col items-center gap-5 p-8">
+      <div className="bg-white rounded-2xl p-4">
+        <QRCodeSVG
+          id="qr-code"
+          value={uploadUrl}
+          size={220}
+          level="M"
+          includeMargin
+          fgColor="#1A1A1A"
+        />
+      </div>
+      <p className="text-sm text-cream/50 text-center max-w-xs">
+        Escanea para compartir tus fotos
       </p>
       <Button variant="outline" size="sm" onClick={downloadQr}>
         Descargar QR
       </Button>
       <CardContent className="p-0">
-        <p className="text-xs text-zinc-400 break-all text-center">{uploadUrl}</p>
+        <p className="text-xs text-cream/30 break-all text-center max-w-full">{uploadUrl}</p>
       </CardContent>
     </Card>
   )
