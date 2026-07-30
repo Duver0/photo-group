@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { QrDisplay } from "@/components/qr-display"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -110,6 +111,17 @@ export default function Dashboard() {
           <CardContent className="p-4 text-red-400 text-sm">{error}</CardContent>
         </Card>
       )}
+
+      <div className="relative w-full h-48 rounded-2xl overflow-hidden">
+        <Image
+          src="/wedding-banner.png"
+          alt="Wedding"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent" />
+      </div>
 
       <div className="flex flex-col items-center">
         {rootFolderId && (

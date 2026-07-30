@@ -23,7 +23,7 @@ export async function GET() {
     return Response.json({ folders })
   } catch (error: any) {
     console.error("GET /folders error:", error)
-    return Response.json({ error: "Error al obtener carpetas" }, { status: 500 })
+    return Response.json({ error: error?.message || "Error al obtener carpetas" }, { status: 500 })
   }
 }
 
@@ -45,6 +45,6 @@ export async function POST() {
     )
   } catch (error: any) {
     console.error("POST /folders error:", error)
-    return Response.json({ error: "Error al crear carpeta" }, { status: 500 })
+    return Response.json({ error: error?.message || "Error al crear carpeta" }, { status: 500 })
   }
 }
