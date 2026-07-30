@@ -262,7 +262,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
               disabled={photos.length === 0}
               className="w-full mt-2"
             >
-              {uploading ? "Subiendo..." : `Subir ${photos.length} foto(s)`}
+              {uploading ? "Subiendo..." : `Enviar ${photos.length} foto(s)`}
             </Button>
           </div>
         </div>

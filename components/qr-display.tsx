@@ -16,23 +16,31 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
     const svg = document.getElementById("qr-code")
     if (!svg) return
 
-    const svgData = new XMLSerializer().serializeToString(svg)
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
+    const svgClone = svg.cloneNode(true) as SVGSVGElement
+    const size = 800
+    const padding = 40
+    const canvasSize = size + padding * 2
+
+    const svgString = new XMLSerializer().serializeToString(svgClone)
     const img = new Image()
 
     img.onload = () => {
-      canvas.width = 400
-      canvas.height = 400
-      ctx?.drawImage(img, 0, 0)
-      const png = canvas.toDataURL("image/png")
+      const canvas = document.createElement("canvas")
+      canvas.width = canvasSize
+      canvas.height = canvasSize
+      const ctx = canvas.getContext("2d")!
+
+      ctx.fillStyle = "#FFFFFF"
+      ctx.fillRect(0, 0, canvasSize, canvasSize)
+      ctx.drawImage(img, padding, padding, size, size)
+
       const link = document.createElement("a")
       link.download = "photo-group-qr.png"
-      link.href = png
+      link.href = canvas.toDataURL("image/png")
       link.click()
     }
 
-    img.src = "data:image/svg+xml;base64," + btoa(svgData)
+    img.src = "data:image/svg+xml;base64," + btoa(svgString)
   }
 
   return (
