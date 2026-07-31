@@ -49,8 +49,8 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
   }
 
   return (
-    <Card className="flex flex-col items-center gap-5 p-8">
-      <div className="relative bg-[#1A1A1A] rounded-2xl p-4">
+    <div className="flex flex-col items-center gap-5 p-8">
+      <div className="bg-[#1A1A1A] rounded-2xl p-4">
         <QRCodeSVG
           ref={svgRef}
           id="qr-code"
@@ -72,6 +72,6 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
       <CardContent className="p-0">
         <p className="text-xs text-cream/30 break-all text-center max-w-full">{uploadUrl}</p>
       </CardContent>
-    </Card>
+    </div>
   )
 }
