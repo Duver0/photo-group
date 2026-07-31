@@ -44,3 +44,39 @@ body::after {
     rgba(26, 26, 26, 0.95) 100%
   );
 }
+
+.sparkle-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sparkle {
+  position: absolute;
+  top: -20px;
+  opacity: 0;
+  animation: sparkle-fall var(--duration, 12s) linear var(--delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes sparkle-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--peak, 0.25);
+  }
+  50% {
+    transform: translate3d(calc(var(--drift, 0px) * 0.4), 45vh, 0) scale(1);
+  }
+  88% {
+    opacity: var(--peak, 0.25);
+  }
+  100% {
+    transform: translate3d(var(--drift, 0px), 112vh, 0) scale(0.8) rotate(160deg);
+    opacity: 0;
+  }
+}

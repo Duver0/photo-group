@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
 import { PhotoUploader } from "@/components/photo-uploader"
+import { Sparkles } from "@/components/sparkles"
 import { Card, CardContent } from "@/components/ui/card"
 
 function UploadForm() {
@@ -91,7 +92,9 @@ function UploadForm() {
 
 export default function UploadPage() {
   return (
-    <Suspense
+    <>
+      <Sparkles />
+      <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
@@ -99,6 +102,7 @@ export default function UploadPage() {
       }
     >
       <UploadForm />
-    </Suspense>
+      </Suspense>
+    </>
   )
 }
