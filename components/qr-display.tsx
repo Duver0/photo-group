@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 const GOLD = "#D4AF37"
 const INK = "#1A1A1A"
 const MARGIN = 4
-const HEART_MODULES = 4.4
+const HEART_MODULES = 2.9
 const HEART_PATH =
   "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
 
@@ -63,7 +63,7 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
         g.setAttribute("transform", heartTransform(center, HEART_MODULES / 24))
         const path = document.createElementNS(ns, "path")
         path.setAttribute("d", HEART_PATH)
-        path.setAttribute("fill", GOLD)
+        path.setAttribute("fill", INK)
         g.appendChild(path)
         svgClone.appendChild(g)
       }
@@ -108,7 +108,7 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
         {centers.map((center, i) => (
           <svg
             key={i}
-            className="absolute text-gold"
+            className="absolute"
             viewBox="0 0 24 24"
             style={{
               left: `${center.x * modulePct}%`,
@@ -118,7 +118,7 @@ export function QrDisplay({ rootFolderId, baseUrl }: QrDisplayProps) {
               transform: "translate(-50%, -50%)",
             }}
           >
-            <path d={HEART_PATH} fill="currentColor" />
+            <path d={HEART_PATH} fill={INK} />
           </svg>
         ))}
       </div>
