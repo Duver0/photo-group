@@ -49,44 +49,6 @@ export async function getOrCreateRootFolder(drive: ReturnType<typeof getDriveCli
   return folder.data.id!
 }
 
-export async function getOrCreateDateFolder(
-  drive: ReturnType<typeof getDriveClient>,
-  rootFolderId: string,
-  dateStr: string
-) {
-  const res = await drive.files.list({
-    q: `name='${dateStr}' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-    spaces: "drive",
-    fields: "files(id, name)",
-  })
-
-  if (res.data.files && res.data.files.length > 0) {
-    return { folderId: res.data.files[0].id!, created: false }
-  }
-
-  const folder = await drive.files.create({
-    requestBody: {
-      name: dateStr,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [rootFolderId],
-    },
-    fields: "id",
-  })
-
-  return { folderId: folder.data.id!, created: true }
-}
-
-export async function listDateFolders(drive: ReturnType<typeof getDriveClient>, rootFolderId: string) {
-  const res = await drive.files.list({
-    q: `'${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-    orderBy: "createdTime desc",
-    fields: "files(id, name, createdTime)",
-    pageSize: 100,
-  })
-
-  return res.data.files || []
-}
-
 export async function uploadPhoto(
   drive: ReturnType<typeof getDriveClient>,
   folderId: string,

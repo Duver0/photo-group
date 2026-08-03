@@ -1,17 +1,9 @@
 import { auth } from "@/lib/auth"
-import { getDriveClient, getOwnerDriveClient, getOrCreateDateFolder, uploadPhoto } from "@/lib/drive"
+import { getDriveClient, getOwnerDriveClient, uploadPhoto } from "@/lib/drive"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"]
 const MAX_FILES = 10
 const MAX_SIZE = 10 * 1024 * 1024
-
-function getDateStr() {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
 
 export async function POST(request: Request) {
   try {
@@ -55,13 +47,10 @@ export async function POST(request: Request) {
       ? getDriveClient(session.accessToken)
       : getOwnerDriveClient()
 
-    const dateStr = getDateStr()
-    const { folderId: dateFolderId } = await getOrCreateDateFolder(drive, folderId, dateStr)
-
     const uploaded = []
     for (const file of files) {
       const buffer = await file.arrayBuffer()
-      const result = await uploadPhoto(drive, dateFolderId, {
+      const result = await uploadPhoto(drive, folderId, {
         name: file.name,
         mimeType: file.type,
         buffer,

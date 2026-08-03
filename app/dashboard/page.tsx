@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type FoldersResponse = {
   rootFolderId: string
-  folderId: string
   name: string
   created: boolean
 }
@@ -21,27 +20,11 @@ type Photo = {
   createdTime: string
 }
 
-type Folder = {
-  id: string
-  name: string
-  createdTime: string
-}
-
-function getDateStr() {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
-
 export default function Dashboard() {
   const { status } = useSession()
   const [rootFolderId, setRootFolderId] = useState<string | null>(null)
-  const [todayFolder, setTodayFolder] = useState<FoldersResponse | null>(null)
-  const [todayPhotos, setTodayPhotos] = useState<Photo[]>([])
-  const [todayCount, setTodayCount] = useState(0)
-  const [folders, setFolders] = useState<Folder[]>([])
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [photoCount, setPhotoCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -51,25 +34,15 @@ export default function Dashboard() {
     async function init() {
       try {
         const folderRes = await fetch("/api/drive/folders", { method: "POST" })
-        if (!folderRes.ok) throw new Error("Error al crear carpeta del dia")
+        if (!folderRes.ok) throw new Error("Error al obtener la carpeta")
         const data: FoldersResponse = await folderRes.json()
         setRootFolderId(data.rootFolderId)
-        setTodayFolder(data)
 
-        const [photosRes, listRes] = await Promise.all([
-          fetch(`/api/drive/photos?folderId=${data.folderId}`),
-          fetch("/api/drive/folders"),
-        ])
-
+        const photosRes = await fetch(`/api/drive/photos?folderId=${data.rootFolderId}`)
         if (photosRes.ok) {
           const photosData = await photosRes.json()
-          setTodayPhotos((photosData.photos || []).slice(0, 6))
-          setTodayCount(photosData.photos?.length || 0)
-        }
-
-        if (listRes.ok) {
-          const listData = await listRes.json()
-          setFolders(listData.folders || [])
+          setPhotos((photosData.photos || []).slice(0, 6))
+          setPhotoCount(photosData.photos?.length || 0)
         }
       } catch (err: any) {
         setError(err.message)
@@ -119,10 +92,7 @@ export default function Dashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            {getDateStr()}
-            <span className="ml-2 text-sm font-normal text-cream/40">(Hoy)</span>
-          </CardTitle>
+          <CardTitle>Ultimas fotos</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -134,15 +104,15 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-          ) : todayCount === 0 ? (
+          ) : photoCount === 0 ? (
             <p className="text-sm text-cream/40 py-8 text-center">
-              Sin fotos hoy. Comparte tu codigo QR.
+              Sin fotos aun. Comparte tu codigo QR.
             </p>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-cream/50">{todayCount} foto(s) hoy</p>
+              <p className="text-sm text-cream/50">{photoCount} foto(s) en total</p>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {todayPhotos.map((photo) => (
+                {photos.map((photo) => (
                   <a
                     key={photo.id}
                     href={photo.webViewLink ?? "#"}
@@ -159,31 +129,6 @@ export default function Dashboard() {
                   </a>
                 ))}
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Fechas anteriores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-10 bg-ink-light animate-pulse rounded-lg" />
-              ))}
-            </div>
-          ) : folders.length === 0 ? (
-            <p className="text-sm text-cream/40 py-4 text-center">No hay carpetas aun.</p>
-          ) : (
-            <div className="space-y-1">
-              {folders.map((f) => (
-                <div key={f.id} className="text-sm text-cream/50 py-2 border-b border-gold/5 last:border-0">
-                  {f.name}
-                </div>
-              ))}
             </div>
           )}
         </CardContent>
