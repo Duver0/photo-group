@@ -22,6 +22,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(true)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
@@ -62,8 +63,35 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     } catch { /* ignore */ }
   }
 
+  async function uploadFiles(files: PhotoFile[]) {
+    if (files.length === 0) return
+    setUploading(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      await onUpload(files.map((p) => p.file))
+      const ids = new Set(files.map((p) => p.id))
+      setPhotos((prev) => {
+        const kept = prev.filter((p) => !ids.has(p.id))
+        return kept
+      })
+      files.forEach((p) => URL.revokeObjectURL(p.preview))
+      setSuccessMsg(
+        files.length === 1
+          ? "¡Foto subida! Gracias por compartir"
+          : `¡Gracias! ${files.length} fotos subidas`
+      )
+      await clearPhotos()
+    } catch (err: any) {
+      setError(err.message ?? "Error al subir fotos")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function addFiles(files: FileList) {
     setError(null)
+    setSuccessMsg(null)
     const arr = Array.from(files)
     const remaining = MAX_FILES - photos.length
 
@@ -91,6 +119,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     }))
 
     setPhotos((prev) => [...prev, ...newPhotos])
+    void uploadFiles(newPhotos)
   }
 
   function removePhoto(id: string) {
@@ -99,6 +128,12 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
       if (photo) URL.revokeObjectURL(photo.preview)
       return prev.filter((p) => p.id !== id)
     })
+  }
+
+  function handleClear() {
+    photos.forEach((p) => URL.revokeObjectURL(p.preview))
+    setPhotos([])
+    clearPhotos()
   }
 
   const handleGalleryChange = useCallback(
@@ -122,21 +157,6 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
     },
     [photos.length]
   )
-
-  async function handleUpload() {
-    if (photos.length === 0) return
-    setUploading(true)
-    setError(null)
-    try {
-      await onUpload(photos.map((p) => p.file))
-      setPhotos([])
-      await clearPhotos()
-    } catch (err: any) {
-      setError(err.message ?? "Error al subir fotos")
-    } finally {
-      setUploading(false)
-    }
-  }
 
   const remaining = MAX_FILES - photos.length
 
@@ -167,24 +187,35 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
         className="hidden"
       />
 
+      {successMsg && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gold">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          {successMsg}
+        </div>
+      )}
+
       {photos.length === 0 ? (
         <div className="space-y-3">
           <Button
             variant="primary"
             size="lg"
             onClick={() => cameraInputRef.current?.click()}
+            disabled={uploading}
             className="w-full"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Tomar foto
+            {uploading ? "Subiendo..." : "Tomar foto"}
           </Button>
           <Button
             variant="secondary"
             size="lg"
             onClick={() => galleryInputRef.current?.click()}
+            disabled={uploading}
             className="w-full"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,14 +226,18 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
         </div>
       ) : (
         <div className="space-y-4">
+          {uploading && (
+            <div className="flex items-center justify-center gap-2 text-sm text-cream/60">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+              Subiendo {photos.length} foto(s)...
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <p className="text-sm text-cream/60">{photos.length}/{MAX_FILES} fotos</p>
             <button
-              onClick={() => {
-                photos.forEach((p) => URL.revokeObjectURL(p.preview))
-                setPhotos([])
-                clearPhotos()
-              }}
+              onClick={handleClear}
+              disabled={uploading}
               className="text-xs text-cream/40 hover:text-cream/70 transition-colors"
             >
               Limpiar todo
@@ -219,6 +254,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
                 />
                 <button
                   onClick={() => removePhoto(photo.id)}
+                  disabled={uploading}
                   className="absolute top-1.5 right-1.5 bg-ink/70 text-cream rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   &times;
@@ -233,7 +269,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
                 variant="secondary"
                 size="lg"
                 onClick={() => cameraInputRef.current?.click()}
-                disabled={remaining === 0}
+                disabled={uploading || remaining === 0}
                 className="flex-1"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,7 +281,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
                 variant="ghost"
                 size="lg"
                 onClick={() => galleryInputRef.current?.click()}
-                disabled={remaining === 0}
+                disabled={uploading || remaining === 0}
                 className="flex-1 border border-gold/20"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,7 +293,7 @@ export function PhotoUploader({ onUpload }: PhotoUploaderProps) {
             <Button
               variant="primary"
               size="lg"
-              onClick={handleUpload}
+              onClick={() => uploadFiles(photos)}
               loading={uploading}
               disabled={photos.length === 0}
               className="w-full"

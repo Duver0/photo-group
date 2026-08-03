@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card"
 function UploadForm() {
   const searchParams = useSearchParams()
   const folder = searchParams.get("folder")
-  const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (!folder) {
@@ -37,22 +36,6 @@ function UploadForm() {
       const data = await res.json()
       throw new Error(data.error ?? "Error al subir fotos")
     }
-
-    setSuccess(true)
-  }
-
-  if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 space-y-6">
-        <div className="w-20 h-20 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center">
-          <svg className="w-10 h-10 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-semibold text-gold">Fotos enviadas</h2>
-        <p className="text-cream/60">Gracias por compartir este momento especial.</p>
-      </div>
-    )
   }
 
   return (
